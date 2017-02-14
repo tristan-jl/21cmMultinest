@@ -52,20 +52,19 @@ def Prior(cube, ndim, nparams):
         cube[i]=cube[i]*10. - 5.
 
 def Loglike(cube, ndim, nparams):
-        i=range(ndim)
         centres=np.zeros((number,2))
         widths=centres
         heights=np.zeros(number)
         
-        for i in i:
-            if 0<=i<=(number*2 - 1):
-                centres[i][0]=cube[2*i]
-                centres[i][1]=cube[2*i+1]
-            elif (number*2)<=i<=(number*2-1 + 2*number):
-                widths[i][0]=cube[2*i]
-                widths[i][1]=cube[2*i+1]
-            elif (number*2+3*number)<=i<=(number-1 + 3*number):
-                heights[i]=cube[i]
+        for i in range(ndim):
+            if 0 <= i <= (number*2 - 1):
+                centres[i][0] = cube[2*i]
+                centres[i][1] = cube[2*i+1]
+            elif (number*2) <= i <= (number*2-1 + 2*number):
+                widths[i][0] = cube[2*i]
+                widths[i][1] = cube[2*i+1]
+            elif (number*2+3*number) <= i <= (number-1 + 3*number):
+                heights[i] = cube[i]
             else:
                 print "i wrong index"
         
