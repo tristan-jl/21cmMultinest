@@ -59,11 +59,11 @@ def Loglike(cube, ndim, nparams):
         
         for i in i:
             if 0<=i<=(number*2 - 1):
-                centres[i][0]=cube[2i]
-                centres[i][1]=cube[2i+1]
+                centres[i][0]=cube[2*i]
+                centres[i][1]=cube[2*i+1]
             elif (number*2)<=i<=(number*2-1 + 2*number):
-                widths[i][0]=cube[2i]
-                widths[i][1]=cube[2i+1]
+                widths[i][0]=cube[2*i]
+                widths[i][1]=cube[2*i+1]
             elif (number*2+3*number)<=i<=(number-1 + 3*number):
                 heights[i]=cube[i]
             else:
