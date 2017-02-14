@@ -5,17 +5,12 @@ import pymultinest
 import json
 
 def Gaussian_2D(coords, centre, width, height):
-    x0=centre[0]
-    y0=centre[1]
-    w0=width[0]
-    w1=width[1]
-    
     norm=1.
     
     for i in range(len(width)):
         norm*=1./(width[i]*(2*np.pi)**0.5)
     
-    result_gaussian=height*norm*np.exp(-0.5*(((coords[0]-x0)/w0)**2 + ((coords[1]-y0)/w1)**2))
+    result_gaussian=height*norm*np.exp(-0.5*(((coords[0]-centre[0])/width[0])**2 + ((coords[1]-centre[1])/width[1])**2))
     
     return result_gaussian
 
@@ -42,6 +37,7 @@ for i in range(num):
 plt.pcolormesh(x,y,data)
 
 #Multinest time
+number=5 #number of gaussians
 
 def Model(number, centres, widths, heights):
     result=np.zeros((array_size,array_size))
@@ -56,15 +52,24 @@ def Prior(cube, ndim, nparams):
         cube[i]=cube[i]*10. - 5.
 
 def Loglike(cube, ndim, nparams):
-        '''
-        Cube:
-            0=number float
-            1=centres array of 2d arrays
-            2=widths array of 2d arrays
-            3=heights array of floats
-        '''
-        model=np.log(Model(cube[0], cube[1], cube[2], cube[3]))
-        loglikelihood=(-0.5 * ((model - data))**2).sum()
+        i=range(ndim)
+        centres=np.zeros((number,2))
+        widths=centres
+        heights=np.zeros(number)
+        
+        for i in i:
+            if 0<=i<=(number*2 - 1):
+                centres[i][0]=cube[2i]
+                centres[i][1]=cube[2i+1]
+            elif (number*2)<=i<=(number*2-1 + 2*number):
+                widths[i][0]=cube[2i]
+                widths[i][1]=cube[2i+1]
+            elif (number*2+3*number)<=i<=(number-1 + 3*number):
+                heights[i]=cube[i]
+            else:
+                print "i wrong index"
+        
+        loglikelihood=np.log(Model(number, centres, widths, heights))
         return loglikelihood
 
 parameters=["number", "centres", "widths", "heights"]
