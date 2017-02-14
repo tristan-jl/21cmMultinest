@@ -61,15 +61,27 @@ def Loglike(cube, ndim, nparams):
                 centres[i][0] = cube[2*i]
                 centres[i][1] = cube[2*i+1]
             elif (number*2) <= i <= (number*2-1 + 2*number):
-                widths[i][0] = cube[2*i]
-                widths[i][1] = cube[2*i+1]
-            elif (number*2+3*number) <= i <= (number-1 + 3*number):
-                heights[i] = cube[i]
+                widths[i - number*2][0] = cube[2*i]
+                widths[i - number*2][1] = cube[2*i+1]
+            elif (number*2 + number*2) <= i <= (number*2-1 + number):
+                heights[i-4*number] = cube[i]
             else:
                 print "i wrong index"
         
         loglikelihood=np.log(Model(number, centres, widths, heights))
         return loglikelihood
+        
+#def Loglike(cube, ndim, nparams):
+#        centres=np.zeros((number,2))
+#        widths=centres
+#        heights=np.zeros(number)
+#        
+#        for i in range(2*number-1):
+#            centres[i][0]=cube[i]
+#            centres[i][1]=cube[2*i+1]
+#        
+#        loglikelihood=np.log(Model(number, centres, widths, heights))
+#        return loglikelihood
 
 parameters=["number", "centres", "widths", "heights"]
 n_params=len(parameters)
