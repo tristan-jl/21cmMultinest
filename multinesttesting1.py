@@ -41,6 +41,9 @@ plt.pcolormesh(x,y,data)
 #Multinest time
 
 def Model(number, centres, widths, heights):
+    '''
+    Sum of [number] of gaussians.
+    '''
     result=np.zeros((array_size,array_size))
     
     for i in range(number):
@@ -49,7 +52,7 @@ def Model(number, centres, widths, heights):
     return result
 
 def Prior(cube, ndim, nparams):
-    for i in range(2*number):  #heights
+    for i in range(2*number):  #centres
         cube[i]=cube[i]*10. - 5.
     
     for i in range(2*number, 4*number): #widths
