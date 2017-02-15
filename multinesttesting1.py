@@ -5,8 +5,8 @@ import pymultinest
 import json
 
 def Gaussian_2D(coords, centre, width, height):
-    norm=1.
     
+    norm=1.
     for i in range(len(width)):
         norm*=1./(width[i]*(2*np.pi)**0.5)
     
@@ -14,7 +14,7 @@ def Gaussian_2D(coords, centre, width, height):
     
     return result_gaussian
 
-array_size=101
+array_size=1001
 
 x=np.linspace(-5.,5.,array_size)
 y=x
@@ -23,7 +23,7 @@ xx,yy=np.meshgrid(x,y)
 num=8
 centre_list=np.random.uniform(-5.,5.,(num,2))
 width_list=np.random.uniform(0.9,1.1,(num,2))
-height_list=np.random.uniform(0.,2.,num)
+height_list=np.random.uniform(0.,1.,num)
 #widths=np.ones((num,2))
 
 print centre_list
@@ -36,8 +36,9 @@ for i in range(num):
 
 plt.pcolormesh(x,y,data)
 
+
+
 #Multinest time
-number=5 #number of gaussians
 
 def Model(number, centres, widths, heights):
     result=np.zeros((array_size,array_size))
@@ -48,34 +49,66 @@ def Model(number, centres, widths, heights):
     return result
 
 def Prior(cube, ndim, nparams):
-    for i in range(ndim):
+    for i in range(2*number):  #heights
         cube[i]=cube[i]*10. - 5.
-
+    
+    for i in range(2*number, 4*number): #widths
+        cube[i]=cube[i]*2.
+    
+    for i in range(4*number, 5*number): #heights
+        cube[i]=cube[i]
+        
 def Loglike(cube, ndim, nparams):
-        centres=np.zeros((number,2))
-        widths=centres
-        heights=np.zeros(number)
+    '''
+    Log likelihood function.
+    '''
+    centres=np.zeros((number,2))
+    widths=np.zeros((number,2))
+    heights=np.zeros(number)
         
-        for i in range(ndim):
-            if 0 <= i <= (number*2 - 1):
-                centres[i][0] = cube[2*i]
-                centres[i][1] = cube[2*i+1]
-            elif (number*2) <= i <= (number*2-1 + 2*number):
-                widths[i][0] = cube[2*i]
-                widths[i][1] = cube[2*i+1]
-            elif (number*2+3*number) <= i <= (number-1 + 3*number):
-                heights[i] = cube[i]
-            else:
-                print "i wrong index"
+    for i in range(number):
+        centres[i][0] = cube[2*i]
+        centres[i][1] = cube[2*i+1]
+        widths[i][0] = cube[2*i + 2*number]
+        widths[i][1] = cube[2*i+1 + 2*number]
+        heights[i] = cube[i + 4*number]    
         
-        loglikelihood=np.log(Model(number, centres, widths, heights))
-        return loglikelihood
+    loglikelihood=np.log(Model(number, centres, widths, heights)).sum()   #not sure about this line
+    return loglikelihood
 
-parameters=["number", "centres", "widths", "heights"]
-n_params=len(parameters)
+def Create_parameter_list(empty_list=None):
+    '''
+    Creates list of parameters by appending to list.
+    '''
+    if empty_list == None:
+        empty_list = []
+
+    for i in range(2*number):
+        if i%2 == 0:
+            xy="x"
+        else:
+             xy="y"
+        empty_list.append("centre_" + xy + str(int(i/2)))
+    
+    for i in range(2*number):
+        if i%2 == 0:
+            xy="x"
+        else:
+             xy="y"
+        empty_list.append("width_" + xy + str(int(i/2)))
+        
+    for i in range(number):
+        empty_list.append("height_" + str(int(i)))
+    
+    return empty_list
+
+number = 5 #number of gaussians
+parameters = Create_parameter_list()
+n_params = len(parameters)
 
 # run MultiNest
 pymultinest.run(Loglike, Prior, n_params)
-json.dump(parameters) # save parameter names
+with open('chains/1-parameter_list.txt', 'w') as outfile:  
+    json.dump(parameters, outfile, 'w')
 
 plt.show()
