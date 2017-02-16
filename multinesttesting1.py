@@ -20,7 +20,7 @@ x = np.linspace(-5., 5., array_size)
 y = x
 xx, yy = np.meshgrid(x, y)
 
-num=1
+num = 1
 centre_list = np.random.uniform(-5., 5., (num, 2))
 width_list = np.random.uniform(0.9, 1.1, (num, 2))
 height_list = np.random.uniform(0., 1., num)
@@ -32,7 +32,7 @@ print "heights", height_list
 data=np.zeros((array_size,array_size))
 
 for i in range(num):
-    data+=Gaussian_2D(np.array([xx,yy]), centre_list[i], width_list[i], height_list[i])
+    data += Gaussian_2D(np.array([xx,yy]), centre_list[i], width_list[i], height_list[i])
 
 plt.pcolormesh(x, y, data)
 
@@ -70,15 +70,15 @@ def Loglike(cube, ndim, nparams):
         
     for i in range(number):
         centres[i][0] = cube[2*i]
-        centres[i][1] = cube[2*i+1]
+        centres[i][1] = cube[2*i + 1]
         widths[i][0] = cube[2*i + 2*number]
-        widths[i][1] = cube[2*i+1 + 2*number]
+        widths[i][1] = cube[2*i + 1 + 2*number]
         heights[i] = cube[i + 4*number]    
         
     #loglikelihood=np.log(Model(number, centres, widths, heights)).sum()   #not sure about this line
     
-    model=Model(number, centres, widths, heights)
-    loglikelihood = (-0.5 * ((model - data)/0.001)**2).sum()
+    model = Model(number, centres, widths, heights)
+    loglikelihood = (-0.5 * ((model - data)/0.1)**2).sum()
     
     return loglikelihood
 
@@ -93,14 +93,14 @@ def Create_parameter_list(empty_list=None):
         if i%2 == 0:
             xy = "x"
         else:
-             xy = "y"
+            xy = "y"
         empty_list.append("centre_" + xy + str(int(i/2)))
     
     for i in range(2*number):
         if i%2 == 0:
             xy = "x"
         else:
-             xy = "y"
+            xy = "y"
         empty_list.append("width_" + xy + str(int(i/2)))
         
     for i in range(number):
