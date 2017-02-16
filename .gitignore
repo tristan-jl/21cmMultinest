@@ -1,3 +1,5 @@
-chains
+chains/*
+out/*
 *.png
 *.pdf
+run.sh
