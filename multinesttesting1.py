@@ -113,8 +113,26 @@ parameters = Create_parameter_list()
 n_params = len(parameters)
 
 # run MultiNest
-pymultinest.run(Loglike, Prior, n_params, n_live_points = 1000)
+pymultinest.run(Loglike, Prior, n_params, n_live_points = 10000, verbose=True, resume=False)
 with open('chains/1-parameter_list.txt', 'w') as outfile:  
     json.dump(parameters, outfile, 'w')
+
+plt.figure() 
+a = pymultinest.Analyzer(outputfiles_basename='chains/1-', n_params = n_params)
+for (centres, widths, heights) in a.get_equal_weighted_posterior()[::100,:-1]:
+	plt.plot(x, Model(centres, widths, heights), '-', color='blue', alpha=0.3, label='data')
+
+#plt.savefig('_1_posterior.pdf')
+#plt.close()
+
+a_lnZ = a.get_stats()['global evidence']
+print 
+print '************************'
+print 'MAIN RESULT: Evidence Z '
+print '************************'
+print '  log Z for model with 1 line = %.1f' % (a_lnZ / np.log(10))
+print
+
+
 
 plt.show()
