@@ -18,6 +18,9 @@ def Gaussian_2D(coord, x0, y0, sigma_x, sigma_y, amplitude):
 def Model(x0, y0, sigma_x, sigma_y, amplitude):
     return Gaussian_2D(xxyy, x0, y0, sigma_x, sigma_y, amplitude)
 
+parameters = ["x0", "y0", "sigma_x", "sigma_y", "amplitude"]
+n_params = len(parameters)
+
 array_size = 101
 
 x_range = (-5., 5.)
@@ -81,17 +84,16 @@ def Prior(cube, ndim, nparams):
     # sigma_x, sigma_y:
     cube[2], cube[3] = cube[2], cube[3]
     # amplitude:
-    cube[6] = 2.*cube[6]
+    cube[4] = 2.*cube[4]
 
     # for i in range(ndim):
     #     cube[i] = cube[i]*10. - 5.
 
 
 def Loglike(cube, ndim, nparams):
-    x, y = cube[0], cube[1]
-    x0, y0 = cube[2], cube[3]
-    xsigma, ysigma = cube[4], cube[5]
-    amplitude = cube[6]
+    x0, y0 = cube[0], cube[1]
+    xsigma, ysigma = cube[2], cube[3]
+    amplitude = cube[4]
 
     # for i in range(ndim):
     #     if 0 <= i <= (number*2 - 1):
@@ -112,12 +114,10 @@ def Loglike(cube, ndim, nparams):
 
     return loglikelihood
 
-parameters = ["x0", "y0", "sigma_x", "sigma_y", "amplitude"]
-n_params = len(parameters)
 
 
 # run MultiNest
-pymultinest.run(Loglike, Prior, n_params, outputfiles_basename=datafile + '_1_', n_live_points=400, resume=False, verbose=True)
+pymultinest.run(Loglike, Prior, n_params, outputfiles_basename=datafile + '_1_', n_live_points=500, resume=False, verbose=True)
 json.dump(parameters, open(datafile + '_1_params.json', 'w')) # save parameter names
 
 # plt.show()
