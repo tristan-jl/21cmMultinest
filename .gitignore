@@ -3,3 +3,4 @@ out/*
 *.png
 *.pdf
 run.sh
+test.py
