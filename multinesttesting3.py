@@ -16,8 +16,8 @@ def show(filepath):
 
 array_size = 101
 nopeaks = 5
-#mu = np.random.uniform(0., 10., (nopeaks, 2))
-mu = np.array([[1., 1.], [1., 9.], [9., 1.], [9., 9.], [5.,5.]])
+mu = np.random.uniform(0., 10., (nopeaks, 2))
+#mu = np.array([[1., 1.], [1., 9.], [9., 1.], [9., 9.], [5.,5.]])
 #sigma = np.random.uniform(0.2, 2.0, nopeaks)
 sigma = np.ones(nopeaks)
 
@@ -108,14 +108,14 @@ plt.savefig("chains/marginals_multinest.pdf") #, bbox_inches='tight')
 show("chains/marginals_multinest.pdf")
 
 for i in range(n_params):
-	outfile = '%s-mode-marginal-%d.pdf' % (a.outputfiles_basename,i)
+	outfile = '%s-mode-marginal-%d.pdf' % (a.outputfiles_basename, i)
 	p.plot_modes_marginal(i, with_ellipses = True, with_points = False)
 	plt.ylabel("Probability")
 	plt.xlabel(parameters[i])
 	plt.savefig(outfile, format='pdf', bbox_inches='tight')
 	plt.close()
 	
-	outfile = '%s-mode-marginal-cumulative-%d.pdf' % (a.outputfiles_basename,i)
+	outfile = '%s-mode-marginal-cumulative-%d.pdf' % (a.outputfiles_basename, i)
 	p.plot_modes_marginal(i, cumulative = True, with_ellipses = True, with_points = False)
 	plt.ylabel("Cumulative probability")
 	plt.xlabel(parameters[i])
