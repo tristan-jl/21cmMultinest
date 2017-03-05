@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import sys
+import time
 
 def load_binary_data(filename, dtype=np.float32): 
      """ 
@@ -51,14 +52,20 @@ z_ = np.linspace(0., 255., 256)
 x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
 
 #create data
-N_peaks = 100
+N_peaks = 1
 centre_list = np.random.uniform(0., 256., (N_peaks,2))
 height_list = np.random.uniform(0., 1., N_peaks)
 
 data = np.zeros((256, 256, 256))
+
+start=time.time()
+
 for i in range(N_peaks):
     print i
     data += height_list[i] * Gaussian_3D(np.array([x,y,z]), (centre_list[i][0], centre_list[i][1], 128.), (1.,1.,1.))
+
+end=time.time()
+print end - start
 
 outputfile = write_binary_data('Fcoll_output_file', data)
 
