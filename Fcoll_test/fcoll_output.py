@@ -27,7 +27,7 @@ def write_binary_data(filename, data, dtype=np.float32):
      f.close()
 
 def Gaussian_3D(coords, centre, width):
-    norm=1.    
+    norm=1.
     power=0.
     
     #for i in range(3):

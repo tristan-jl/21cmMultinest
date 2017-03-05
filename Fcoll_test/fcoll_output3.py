@@ -32,15 +32,13 @@ def Gaussian_3D(coords, centre, width):
     Takes grid (coords) as arg, along with centre and width of Gaussian. Returns another grid.
     '''
     normal=[]
-    power=[]
+    power=0.
     
     for i in range(3):
-        normal.append(width[i]*(2*np.pi)**0.5)
-        power.append((coords[i] - centre[i]/width[i])**2)
-    
-    normal = 1./linalg.norm(normal)
-    power = np.sum(power)
+        normal.append(1./(width[i]*(2*np.pi)**0.5))
+        power += ((coords[i] - centre[i])/width[i])**2
 
+    normal = linalg.norm(normal)
     result = normal*np.exp(-0.5*power)
     
     return result
@@ -52,7 +50,7 @@ z_ = np.linspace(0., 255., 256)
 x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
 
 #create data
-N_peaks = 10
+N_peaks = 1
 centre_list = np.random.uniform(0., 256., (N_peaks,2))
 height_list = np.random.uniform(0., 1., N_peaks)
 
