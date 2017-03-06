@@ -1,5 +1,6 @@
 chains/*
 out/*
+Fcoll_test/outputs/*
 *.png
 *.pdf
 run.sh
