@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from numpy import linalg
+from scipy.stats import multivariate_normal
 import sys
 import time
 
@@ -27,41 +27,31 @@ def write_binary_data(filename, data, dtype=np.float32):
      f.write(_data)
      f.close()
 
-def Gaussian_3D(coords, centre, width):
-    '''
-    Takes grid (coords) as arg, along with centre and width of Gaussian. Returns another grid.
-    '''
-    normal=[]
-    power=0.
-    
-    for i in range(3):
-        normal.append(1./(width[i]*(2*np.pi)**0.5))
-        power += ((coords[i] - centre[i])/width[i])**2
-
-    normal = linalg.norm(normal)
-    result = normal*np.exp(-0.5*power)
-    
-    return result
+def is_pos_def(x):
+    return np.all(np.linalg.eigvals(x) > 0)
 
 #create grid
-grid_length = 256.
+grid_length = 64
 x_ = np.linspace(0., grid_length - 1., grid_length)
 y_ = np.linspace(0., grid_length - 1., grid_length)
 z_ = np.linspace(0., grid_length - 1., grid_length)
 x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
+pos = np.stack((x, y, z), axis = -1)
 
 #create data
-N_peaks = 10
-centre_list = np.random.uniform(0., grid_length, (N_peaks,2))
+N_peaks = 1000
+centre_list = np.random.uniform(0., grid_length, (N_peaks, 3))
 height_list = np.random.uniform(0., 1., N_peaks)
-
+rand_matrix_list = np.random.uniform(0., 1., (N_peaks, 3, 3))
 data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 
 start=time.time()
 
 for i in xrange(N_peaks):
     print i
-    data += height_list[i] * Gaussian_3D(np.array([x,y,z]), (centre_list[i][0], centre_list[i][1], 128.), (1.,1.,1.))
+    cov_matrix = np.dot(rand_matrix_list[i],rand_matrix_list[i].transpose())
+    #matrix sometimes singular, ie has very small det (havent seen one equal to 0 yet)
+    data += height_list[i] * multivariate_normal.pdf(pos, centre_list[i], cov_matrix, allow_singular = True)
 
 end=time.time()
 print end - start

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from numpy import linalg
+import scipy.stats as st
 import sys
 import time
 
@@ -43,16 +44,29 @@ def Gaussian_3D(coords, centre, width):
     
     return result
 
+class Fcoll_pdf(st.rv_continous):
+    def _pdf(self, x, p, q, r):
+        '''
+        PDF of fcoll heights
+            sum of exp and uniform dist.
+        x: random variable
+        p,q,r: params set from distribution of fcoll heights from 21cmFAST
+        '''
+        norm = 1./((p/r)*(1. - np.exp(-r)) + 1./(1.-q))
+        return norm*np.exp(-x) + 1./(1.-q)
+
+
+
 #create grid
-grid_length = 256.
+grid_length = 32
 x_ = np.linspace(0., grid_length - 1., grid_length)
 y_ = np.linspace(0., grid_length - 1., grid_length)
 z_ = np.linspace(0., grid_length - 1., grid_length)
 x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
 
 #create data
-N_peaks = 10
-centre_list = np.random.uniform(0., grid_length, (N_peaks,2))
+N_peaks = 1000
+centre_list = np.random.uniform(0., grid_length, (N_peaks,3))
 height_list = np.random.uniform(0., 1., N_peaks)
 
 data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
@@ -61,7 +75,7 @@ start=time.time()
 
 for i in xrange(N_peaks):
     print i
-    data += height_list[i] * Gaussian_3D(np.array([x,y,z]), (centre_list[i][0], centre_list[i][1], 128.), (1.,1.,1.))
+    data += height_list[i] * Gaussian_3D(np.array([x,y,z]), centre_list[i], (1.,1.,1.))
 
 end=time.time()
 print end - start

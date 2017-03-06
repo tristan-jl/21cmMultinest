@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from numpy import linalg
+from scipy.stats import multivariate_normal
 import sys
 import time
 
@@ -44,24 +45,24 @@ def Gaussian_3D(coords, centre, width):
     return result
 
 #create grid
-grid_length = 256.
-x_ = np.linspace(0., grid_length - 1., grid_length)
-y_ = np.linspace(0., grid_length - 1., grid_length)
-z_ = np.linspace(0., grid_length - 1., grid_length)
+x_ = np.linspace(0., 255., 256)
+y_ = np.linspace(0., 255., 256)
+z_ = np.linspace(0., 255., 256)
 x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
+pos = np.stack((x, y, z), axis = -1)
 
 #create data
 N_peaks = 10
-centre_list = np.random.uniform(0., grid_length, (N_peaks,2))
+centre_list = np.random.uniform(0., 256., (N_peaks,2))
 height_list = np.random.uniform(0., 1., N_peaks)
 
-data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
+data = np.zeros((256, 256, 256))
 
 start=time.time()
 
 for i in xrange(N_peaks):
     print i
-    data += height_list[i] * Gaussian_3D(np.array([x,y,z]), (centre_list[i][0], centre_list[i][1], 128.), (1.,1.,1.))
+    data += height_list[i] * multivariate_normal.pdf(pos, [128., 128., 128.], [[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
 
 end=time.time()
 print end - start
