@@ -59,23 +59,23 @@ x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
 pos = np.stack((x, y, z), axis = -1)
 
 #create data
-N_peaks = 1000
+N_peaks = 50
 centre_list = np.random.uniform(0., grid_length, (N_peaks, 3))
 height_list = np.random.uniform(0., 1., N_peaks)
 height_list_pdf = Fcoll_pdf(a=0., b=1., name='Fcoll_pdf')
-height_list = 0.01*height_list_pdf.pdf(height_list)
+height_list = 3e-3*height_list_pdf.pdf(height_list)
 rand_matrix_list = np.random.uniform(0., 1., (N_peaks, 3, 3))
 data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 
 start=time.time()
 
 for i in xrange(N_peaks):
-    print i
+    #print i
     cov_matrix = np.dot(rand_matrix_list[i],rand_matrix_list[i].transpose())
     #cov_matrix = [[1., 0., 0.], [0., 1., 0.],[0., 0., 1.]]
     data += height_list[i] * multivariate_normal.pdf(pos, centre_list[i], cov_matrix, allow_singular = True)
 
-#Overall normalisation
+#data=data*50./np.sum(data)
 
 end=time.time()
 print "time taken", end - start
