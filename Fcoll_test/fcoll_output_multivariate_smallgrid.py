@@ -29,6 +29,9 @@ def write_binary_data(filename, data, dtype=np.float32):
      f.close()
 
 def is_pos_def(x):
+    '''
+    Checks matrix to see if positive definite.
+    '''
     return np.all(np.linalg.eigvals(x) > 0)
 
 class Fcoll_pdf(rv_continuous):
@@ -39,9 +42,9 @@ class Fcoll_pdf(rv_continuous):
             x: random variable
             p, q, r: params set from distribution of fcoll heights from 21cmFAST
             end from analysis of fcoll maps
-            '''
-        end = 1. - 0.0058135
-        p = 0.183288865538
+        '''
+        end = 1. - 0.0058135 #found from looking at fraction of points in fcoll map that was equal to 1.
+        p = 0.183288865538 #found from scipy.optimise
         q = 1261.4820295
         r = -2.39015541247
         norm = 1./(p/(r + 1.) + q*(1. - end)) #normalisation factor
@@ -60,7 +63,7 @@ N_peaks = 1000
 centre_list = np.random.uniform(0., grid_length, (N_peaks, 3))
 height_list = np.random.uniform(0., 1., N_peaks)
 height_list_pdf = Fcoll_pdf(a=0., b=1., name='Fcoll_pdf')
-height_list = height_list_pdf.pdf(height_list)
+height_list = 0.01*height_list_pdf.pdf(height_list)
 rand_matrix_list = np.random.uniform(0., 1., (N_peaks, 3, 3))
 data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 
@@ -69,7 +72,10 @@ start=time.time()
 for i in xrange(N_peaks):
     print i
     cov_matrix = np.dot(rand_matrix_list[i],rand_matrix_list[i].transpose())
-    data += height_list[i] * multivariate_normal.pdf(pos, centre_list[i], [[1., 0., 0.], [0., 1., 0.],[0., 0., 1.]], allow_singular = True)
+    #cov_matrix = [[1., 0., 0.], [0., 1., 0.],[0., 0., 1.]]
+    data += height_list[i] * multivariate_normal.pdf(pos, centre_list[i], cov_matrix, allow_singular = True)
+
+#Overall normalisation
 
 end=time.time()
 print "time taken", end - start
