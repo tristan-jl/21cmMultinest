@@ -5,17 +5,17 @@ from scipy.stats import rv_continuous
 import sys
 import time
 
-def load_binary_data(filename, dtype=np.float32): 
-     """ 
-     We assume that the data was written with write_binary_data() (little endian). 
-     """ 
-     f = open(filename, "rb") 
-     data = f.read() 
-     f.close() 
-     _data = np.fromstring(data, dtype) 
+def load_binary_data(filename, dtype=np.float32):
+     """
+     We assume that the data was written with write_binary_data() (little endian).
+     """
+     f = open(filename, "rb")
+     data = f.read()
+     f.close()
+     _data = np.fromstring(data, dtype)
      if sys.byteorder == 'big':
        _data = _data.byteswap()
-     return _data 
+     return _data
 
 def write_binary_data(filename, data, dtype=np.float32):
      """
@@ -66,17 +66,18 @@ data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 
 start=time.time()
 
+print "Generating Fcoll box"
 for i in xrange(N_peaks):
-    print i
     cov_matrix = np.dot(rand_matrix_list[i],rand_matrix_list[i].transpose())
     data += height_list[i] * multivariate_normal.pdf(pos, centre_list[i], [[1., 0., 0.], [0., 1., 0.],[0., 0., 1.]], allow_singular = True)
+    if i % 50 == 0:
+        print i, "peaks generated"
 
 end=time.time()
 print "time taken", end - start
 
-outputfile = write_binary_data('Fcoll_output_file', data)
+outputfile = write_binary_data('C:/Users/Ronnie/Documents/21cmFAST-msci/Boxes/Fcoll_output_file_GAUSS_64_75Mpc', data)
 
 #data1=load_binary_data('Fcoll_output_file')
 #print data1.shape
 #print data1
-

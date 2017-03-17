@@ -5,17 +5,17 @@ import scipy.stats as st
 import sys
 import time
 
-def load_binary_data(filename, dtype=np.float32): 
-     """ 
-     We assume that the data was written with write_binary_data() (little endian). 
-     """ 
-     f = open(filename, "rb") 
-     data = f.read() 
-     f.close() 
-     _data = np.fromstring(data, dtype) 
+def load_binary_data(filename, dtype=np.float32):
+     """
+     We assume that the data was written with write_binary_data() (little endian).
+     """
+     f = open(filename, "rb")
+     data = f.read()
+     f.close()
+     _data = np.fromstring(data, dtype)
      if sys.byteorder == 'big':
        _data = _data.byteswap()
-     return _data 
+     return _data
 
 def write_binary_data(filename, data, dtype=np.float32):
      """
@@ -34,17 +34,17 @@ def Gaussian_3D(coords, centre, width):
     '''
     normal=[]
     power=0.
-    
+
     for i in range(3):
         normal.append(1./(width[i]*(2*np.pi)**0.5))
         power += ((coords[i] - centre[i])/width[i])**2
 
     normal = linalg.norm(normal)
     result = normal*np.exp(-0.5*power)
-    
+
     return result
 
-class Fcoll_pdf(st.rv_continous):
+class Fcoll_pdf(st.rv_continuous):
     def _pdf(self, x, p, q, r):
         '''
         PDF of fcoll heights
@@ -74,15 +74,15 @@ data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 start=time.time()
 
 for i in xrange(N_peaks):
-    print i
     data += height_list[i] * Gaussian_3D(np.array([x,y,z]), centre_list[i], (1.,1.,1.))
+    if i % 50 == 0:
+        print i, "peaks generated"
 
 end=time.time()
 print end - start
 
-outputfile = write_binary_data('Fcoll_output_file', data)
+outputfile = write_binary_data('C:/Users/Ronnie/Documents/21cmFAST-msci/Boxes/Fcoll_output_file_CUBE_z001.10_64_75Mpc', data)
 
 #data1=load_binary_data('Fcoll_output_file')
 #print data1.shape
 #print data1
-
