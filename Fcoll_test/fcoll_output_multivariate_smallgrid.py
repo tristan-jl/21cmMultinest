@@ -83,7 +83,7 @@ for i in xrange(N_peaks):
 end=time.time()
 print "time taken", end - start
 
-outputfile = write_binary_data('C:/Users/Ronnie/Documents/21cmFAST-msci/Boxes/Fcoll_output_file_GAUSS_64_75Mpc', data)
+outputfile = write_binary_data('C:/Users/Ronnie/Documents/21cmFAST-msci/Boxes/Fcoll_output_file_z008.00_64_75Mpc', data)
 
 #data1=load_binary_data('Fcoll_output_file')
 #print data1.shape
