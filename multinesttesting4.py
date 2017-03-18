@@ -7,12 +7,8 @@ from sys import platform
 import scipy as sp
 from scipy import stats
 
-if not os.path.exists("chains"): os.mkdir("chains")
-def show(filepath): 
-	""" open the output (pdf) file for the user """
-	if os.name == 'mac' or platform == 'darwin': subprocess.call(('open', filepath))
-	elif os.name == 'nt' or platform == 'win32': os.startfile(filepath)
-	elif platform.startswith('linux') : subprocess.call(('xdg-open', filepath))
+if not os.path.exists("chains"):
+	os.mkdir("chains")
 
 array_size = 11
 nopeaks = 2
@@ -23,7 +19,7 @@ sigma = np.random.uniform(0.2, 2.0, nopeaks)
 def Gaussian_2D(coords, centre, width):
     norm=1./((2*np.pi)*width**2)
     result_gaussian = norm*np.exp(-0.5*(((coords[0]-centre[0])/width)**2 + ((coords[1]-centre[1])/width)**2))
-    
+
     return result_gaussian
 
 x=np.linspace(0., 10., array_size)
@@ -40,7 +36,7 @@ def Model(centre1, centre2, width):
 
 def Prior(cube, ndim, nparams):
     for i in range(ndim):
-        cube[i] = cube[i]*10.        
+        cube[i] = cube[i]*10.
 
 def Loglike(cube, ndim, nparams):
     #centre=np.array(cube[0], cube[1])
@@ -52,9 +48,6 @@ def Loglike(cube, ndim, nparams):
 parameters = ["x1", "y1", "x2", "y2"]
 n_params = len(parameters)
 
-# we want to see some output while it is running
-progress = pymultinest.ProgressPlotter(n_params = n_params, outputfiles_basename='chains/'); progress.start()
-threading.Timer(2, show, ["chains/phys_live.points.pdf"]).start() # delayed opening
 # run MultiNest
 pymultinest.run(Loglike, Prior, n_params, importance_nested_sampling = False, resume = False, verbose = True, sampling_efficiency = 'model', n_live_points = 5000, outputfiles_basename='chains/')
 # ok, done. Stop our progress watcher
@@ -92,7 +85,7 @@ for i in range(n_params):
 	p.plot_marginal(i, with_ellipses = True, with_points = False, grid_points=50)
 	plt.ylabel("Probability")
 	plt.xlabel(parameters[i])
-	
+
 	for j in range(i):
 		plt.subplot(n_params, n_params, n_params * j + i + 1)
 		#plt.subplots_adjust(left=0, bottom=0, right=0, top=0, wspace=0, hspace=0)
@@ -100,24 +93,23 @@ for i in range(n_params):
 		plt.xlabel(parameters[i])
 		plt.ylabel(parameters[j])
 
-plt.savefig("chains/marginals_multinest.pdf") #, bbox_inches='tight')
-show("chains/marginals_multinest.pdf")
+plt.savefig("chains/marginals_multinest.png") #, bbox_inches='tight')
 
 for i in range(n_params):
-	outfile = '%s-mode-marginal-%d.pdf' % (a.outputfiles_basename,i)
+	outfile = '%s-mode-marginal-%d.png' % (a.outputfiles_basename,i)
 	p.plot_modes_marginal(i, with_ellipses = True, with_points = False)
 	plt.ylabel("Probability")
 	plt.xlabel(parameters[i])
-	plt.savefig(outfile, format='pdf', bbox_inches='tight')
+	plt.savefig(outfile, format='png', bbox_inches='tight')
 	plt.close()
-	
-	outfile = '%s-mode-marginal-cumulative-%d.pdf' % (a.outputfiles_basename,i)
+
+	outfile = '%s-mode-marginal-cumulative-%d.png' % (a.outputfiles_basename,i)
 	p.plot_modes_marginal(i, cumulative = True, with_ellipses = True, with_points = False)
 	plt.ylabel("Cumulative probability")
 	plt.xlabel(parameters[i])
-	plt.savefig(outfile, format='pdf', bbox_inches='tight')
+	plt.savefig(outfile, format='png', bbox_inches='tight')
 	plt.close()
 
-print("Take a look at the pdf files in chains/") 
+print("Take a look at the png files in chains/")
 
 print("mus=", mu, "sigmas=", sigma)
