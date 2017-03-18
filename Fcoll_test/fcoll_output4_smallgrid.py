@@ -58,14 +58,14 @@ class Fcoll_pdf(st.rv_continuous):
 
 
 #create grid
-grid_length = 32
+grid_length = 64
 x_ = np.linspace(0., grid_length - 1., grid_length)
 y_ = np.linspace(0., grid_length - 1., grid_length)
 z_ = np.linspace(0., grid_length - 1., grid_length)
 x, y, z = np.meshgrid(x_, y_, z_, indexing='ij')
 
 #create data
-N_peaks = 1000
+N_peaks = 500
 centre_list = np.random.uniform(0., grid_length, (N_peaks,3))
 height_list = np.random.uniform(0., 1., N_peaks)
 
@@ -73,15 +73,19 @@ data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 
 start=time.time()
 
+print "Generating Fcoll box:", N_peaks, "peaks"
+
 for i in xrange(N_peaks):
-    data += height_list[i] * Gaussian_3D(np.array([x,y,z]), centre_list[i], (1.,1.,1.))
-    if i % 50 == 0:
-        print i, "peaks generated"
+    data += height_list[i] * Gaussian_3D(np.array([x,y,z]), centre_list[i], (2.,2.,2.))
+    if i % 5 == 0:
+        print i, "peaks generated",
+        sys.stdout.flush()
+        print "\r",
 
 end=time.time()
 print end - start
 
-outputfile = write_binary_data('C:/Users/Ronnie/Documents/21cmFAST-msci/Boxes/Fcoll_output_file_CUBE_z001.10_64_75Mpc', data)
+outputfile = write_binary_data('C:/Users/Ronnie/Documents/21cmFAST-msci/Boxes/Fcoll_output_file_CUBE_z008.10_64_75Mpc', data)
 
 #data1=load_binary_data('Fcoll_output_file')
 #print data1.shape
