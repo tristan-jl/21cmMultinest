@@ -1,3 +1,5 @@
+USAGE = 'EXAMPLE USAGE:\n>>>>A = MN2()\n>>>>A.generate_data("data1")\n>>>>A.run_sampling("out/data1")\n>>>>A.marginals("out/data1")'
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -8,7 +10,7 @@ import json
 
 class MN2:
     def __init__(self):
-        self.parameters = ["x0", "y0"]#, "sigma_x", "sigma_y", "amplitude"]
+        self.parameters = ["x0", "y0"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
         self.n_params = len(self.parameters)
 
         self.array_size = 101
@@ -33,18 +35,27 @@ class MN2:
 
         return amplitude * normalisation * np.exp(-0.5 * ( ((x-x0)/sigma_x)**2 + ((y-y0)/sigma_x)**2 ))
 
+    def Unimodal_Model(self, x0, y0):#, sigma_x, sigma_y, amplitude):
+        """
+        Args:
+            x0 (float): x coord of centre of Gaussian
+            y0 (float): y coord of centre of Gaussian
+        """
+        other_params = (1., 1., 1.1)
+        return self.Gaussian_2D(self.xxyy, x0, y0, *other_params)
 
-    def Model(self, x0, y0):#, sigma_x, sigma_y, amplitude):
+
+    def Multimodal_Model(self, x0, y0):#, sigma_x, sigma_y, amplitude):
         """
-        Args are arrays, each element corresponds to a Gaussian's params
+        Args:
+            x0 (array): list of x coords of centre of Gaussians
+            y0 (array): list of y coords of centre of Gaussians
         """
-        if len(x0) == len(y0):# == len(sigma_x) == len(sigma_y) == len(amplitude):
-            gaussians = np.zeros_like(self.xx)
-            for i in range(len(x0)):
-                gaussians += self.Gaussian_2D(self.xxyy, x0[i], y0[i],0.5,0.5,1.1)#, sigma_x[i], sigma_y[i], amplitude[i])
-            return gaussians
-        else:
-            raise Exception("Lengths of param lists not equal")
+        other_params = (1., 1., 1.1)
+        model = np.zeros_like(self.xxyy[0])
+        for i in range(len(x0)):
+            model += self.Gaussian_2D(self.xxyy, x0[i], y0[i], *other_params)
+        return model
 
 
     def Prior(self, cube, ndim, nparams):
@@ -52,15 +63,15 @@ class MN2:
         Map unit Prior cube onto non-unit paramter space
 
         Args:
-            cube - [x0, y0, sigma_x, sigma_y, amplitude]
-                Each element is an array
+            cube - [x0a, y0a, x0b, y0b]
+                Each element is an float
             ndim - the number of dimensions of the (hyper)cube
             nparams - WTF
         """
-        # x0:
+        # x0, y0:
         cube[0], cube[1] = 10.*cube[0] - 5., 10.*cube[1] - 5.
         # y0:
-        cube[2], cube[3] = 10.*cube[2] - 5., 10.*cube[3] - 5.
+        # cube[1], cube[3] = 10.*cube[1] - 5., 10.*cube[3] - 5.
         # # sigma_x, sigma_y:
         # cube[2], cube[3] = cube[2], cube[3]
         # # amplitude:
@@ -68,11 +79,13 @@ class MN2:
 
 
     def Loglike(self, cube, ndim, nparams):
-        x0, y0 = np.array([cube[0], cube[1]]), np.array([cube[2], cube[3]])
+        # x0a, y0b = cube[0], cube[1]
+        # x0b, y0b = cube[2], cube[3]
+        x0, y0 = cube[0], cube[1]
         # xsigma, ysigma = cube[2], cube[3]
         # amplitude = cube[4]
 
-        model = self.Model(x0, y0)#, xsigma, ysigma, amplitude)
+        model = self.Unimodal_Model(x0, y0)#, x0b, y0b)#, xsigma, ysigma, amplitude)
         loglikelihood = (-0.5 * ((model - self.data) / self.noise)**2).sum()
 
         return loglikelihood
@@ -94,11 +107,11 @@ class MN2:
             filename (str)
             noise (float)
         """
-        x0, y0 = (np.array([-0.23, 3.68]), np.array([2.04, -4.01]))#np.random.uniform(*self.x_range, size=(self.num, 2))[0]
+        x0, y0 = [-0.63, 1.04, 3.8], [0.98, -3.01, 1.2]
         # sigma_x, sigma_y = np.random.uniform(*self.sigma_range, size=(self.num, 2))[0]
         # amplitude = np.random.uniform(*self.amplitude_range, size=self.num)[0]
 
-        data = self.Model(x0, y0)#, sigma_x, sigma_y, amplitude)
+        data = self.Multimodal_Model(x0, y0)#, sigma_x, sigma_y, amplitude)
         data = np.random.normal(data, noise)
         np.savetxt("out/" + filename, data)
 
@@ -106,7 +119,7 @@ class MN2:
         plt.savefig("out/" + filename + "_fig.png")
 
 
-    def run_sampling(self, datafile, noise=0.01):
+    def run_sampling(self, datafile, n_points=500, noise=1., resume=False, mode_tolerance=-1e20, verbose=False):
         """
         Run PyMultiNest against single Gaussian.
 
@@ -118,14 +131,47 @@ class MN2:
         self.noise = noise
 
         # run MultiNest
-        pymultinest.run(self.Loglike, self.Prior, self.n_params, outputfiles_basename=datafile+'_1_', n_live_points=500, resume=False, verbose=True)
+        pymultinest.run(self.Loglike, self.Prior, self.n_params, outputfiles_basename=datafile+'_1_', n_live_points=n_points, resume=resume, importance_nested_sampling=False, mode_tolerance=mode_tolerance, verbose=verbose)
         json.dump(self.parameters, open(datafile + '_1_params.json', 'w')) # save parameter names
 
-        pm_analyser = pymultinest.analyse.Analyzer(self.n_params, outputfiles_basename=datafile+'_1_')
-        mode_stats = pm_analyser.get_mode_stats()["modes"][0]
-        means = mode_stats["mean"]
-        sigmas = mode_stats["sigma"]
-        opt_params = np.dstack((means, sigmas))
-        fit_data = self.Model(means[0], means[1])#, means[2], means[3], means[4])
+        self.pm_analyser = pymultinest.analyse.Analyzer(self.n_params, outputfiles_basename=datafile+'_1_')
+        mode_stats = self.pm_analyser.get_mode_stats()["modes"]
+        # print mode_stats
+        n_modes = len(mode_stats)
+        means = np.array([mode_stats[i]["mean"] for i in range(n_modes)])
+        sigmas = np.array([mode_stats[i]["sigma"] for i in range(n_modes)])
+        optimal_params = np.dstack((means, sigmas))
+        fit_data = self.Multimodal_Model(means[:,0], means[:,1])#, means[2], means[3])
         self._plot(fit_data)
         plt.savefig(datafile + "_1_fig.png")
+
+        for n in range(len(optimal_params)):
+            mode = optimal_params[n]
+            print "Mode", n
+            for i in range(self.n_params):
+                print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
+
+
+    def marginals(self, datafile):
+        self.pm_analyser = pymultinest.Analyzer(self.n_params, outputfiles_basename=datafile+'_1_')
+        self.pm_marg_modes = pymultinest.PlotMarginalModes(self.pm_analyser)
+
+        fig = plt.figure(figsize=(3*self.n_params, 3*self.n_params))
+        for i in range(self.n_params):
+            plt.subplot(self.n_params, self.n_params, self.n_params * i + i + 1)
+            self.pm_marg_modes.plot_marginal(i, grid_points=100)
+            plt.xlabel(self.parameters[i])
+            plt.ylabel("Probability")
+            # plt.savefig(datafile + "_1_marg_" + str(i) + ".png")
+            for j in range(i):
+                plt.subplot(self.n_params, self.n_params, self.n_params * j + i + 1)
+                self.pm_marg_modes.plot_marginal(j, i, with_ellipses=False) # WITH_ELLIPSES=FALSE!!!!
+                plt.xlabel(self.parameters[i])
+                plt.ylabel(self.parameters[j])
+                # plt.savefig(datafile + "_1_marg_" + str(i) + "_" + str(j) + ".png")
+        plt.savefig(datafile + "_1_marg.png")
+
+
+
+# print USAGE
+A = MN2()
