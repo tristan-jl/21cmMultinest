@@ -1,6 +1,7 @@
 chains/*
 out/*
 Fcoll_test/outputs/*
+multinesttesting4_output/*
 *.png
 *.pdf
 run.sh
