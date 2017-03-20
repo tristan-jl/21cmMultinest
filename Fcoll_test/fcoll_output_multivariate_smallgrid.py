@@ -5,17 +5,17 @@ from scipy.stats import rv_continuous
 import sys
 import time
 
-def load_binary_data(filename, dtype=np.float32): 
-     """ 
-     We assume that the data was written with write_binary_data() (little endian). 
-     """ 
-     f = open(filename, "rb") 
-     data = f.read() 
-     f.close() 
-     _data = np.fromstring(data, dtype) 
+def load_binary_data(filename, dtype=np.float32):
+     """
+     We assume that the data was written with write_binary_data() (little endian).
+     """
+     f = open(filename, "rb")
+     data = f.read()
+     f.close()
+     _data = np.fromstring(data, dtype)
      if sys.byteorder == 'big':
        _data = _data.byteswap()
-     return _data 
+     return _data
 
 def write_binary_data(filename, data, dtype=np.float32):
      """
@@ -70,7 +70,8 @@ data = np.zeros((int(grid_length), int(grid_length), int(grid_length)))
 start=time.time()
 
 for i in xrange(N_peaks):
-    #print i
+    print i
+    # Make positive-definite covariance matrix:
     cov_matrix = np.dot(rand_matrix_list[i],rand_matrix_list[i].transpose())
     #cov_matrix = [[1., 0., 0.], [0., 1., 0.],[0., 0., 1.]]
     data += height_list[i] * multivariate_normal.pdf(pos, centre_list[i], cov_matrix, allow_singular = True)
@@ -85,4 +86,3 @@ outputfile = write_binary_data('Fcoll_output_file', data)
 #data1=load_binary_data('Fcoll_output_file')
 #print data1.shape
 #print data1
-
