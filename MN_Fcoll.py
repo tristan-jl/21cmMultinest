@@ -126,11 +126,10 @@ class MN2:
         x0, y0 = np.random.uniform(-5., 5., self.num), np.random.uniform(-5., 5., self.num)
         width = np.random.uniform(0.1, 2., self.num)
 
-        data = self.Multimodal_Model(x0, y0, width)#, sigma_x, sigma_y, amplitude)
-        data = np.random.normal(data, noise)
-        np.savetxt("out/" + filename, data)
-
-        self._plot(data)
+        self.data = self.Multimodal_Model(x0, y0, width)#, sigma_x, sigma_y, amplitude)
+        self.data = np.random.normal(self.data, noise)
+        np.savetxt("out/" + filename, self.data)
+        self._plot(self.data)
         plt.savefig("out/" + filename + "_fig.png")
 
 
