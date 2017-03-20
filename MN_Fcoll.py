@@ -18,19 +18,21 @@ class MN2:
             marginals (bool): whether or not to plot the marginals
             filename (str): the filename in the out/ directory (must be specified if any of the 3 above are True)
         """
-        self.parameters = ["x0", "y0", "width"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
+        self.parameters = ["x0", "y0", "z0", "width"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
         self.n_params = len(self.parameters)
 
-        self.array_size = 101
+        self.array_size = 64
 
-        self.x_range = (-5., 5.)
+        self.x_range = (0., 75.)
         # self.sigma_range = (0.2, 1.)
         # self.amplitude_range = (0.1, 2.,)
 
         self.x = np.linspace(*self.x_range, num=self.array_size)
         self.y = np.linspace(*self.x_range, num=self.array_size)
-        self.xxyy = np.meshgrid(self.x, self.y)
-        self.xx, self.yy = self.xxyy
+        self.z = np.linspace(*self.x_range, num=self.array_size)
+
+        self.xyz = np.meshgrid(self.x, self.y, self.z)
+        self.xx, self.yy, self.zz = self.xyz
 
         self.num = num #8
 
@@ -44,40 +46,45 @@ class MN2:
         elif marginals == True and filename != None:
             self.marginals("out/"+filename)
         elif (generate == True or run == True or marginals == True) and filename == None:
-            raise Exception("No filaname specified")
+            raise Exception("No filename specified")
 
-    def Gaussian_2D(self, coord, x0, y0, width, amplitude):
-        x, y = coord
-        sigma_x, sigma_y = width, width
+
+    def Gaussian_3D(self, coord, x0, y0, z0, width, amplitude):
+        x, y, z = coord
+        # sigma_x, sigma_y = width, width
+        sigma = width
         normalisation = 1.
 
         # for i in range(len(width)):
         #     normalisation *= 1. / (width[i] * np.sqrt(2*np.pi))
 
-        return amplitude * normalisation * np.exp(-0.5 * ( ((x-x0)/sigma_x)**2 + ((y-y0)/sigma_y)**2 ))
+        return amplitude * normalisation * np.exp(-0.5 * ( ((x-x0)/sigma)**2 + ((y-y0)/sigma)**2  + ((z-z0)/sigma)**2 ))
 
-    def Unimodal_Model(self, x0, y0, width):#, sigma_x, sigma_y, amplitude):
+
+    def Unimodal_Model(self, x0, y0, z0, width):#, sigma_x, sigma_y, amplitude):
         """
         Args:
             x0 (float): x coord of centre of Gaussian
             y0 (float): y coord of centre of Gaussian
+            z0 (float): z coord of centre of Gaussian
             width (float): width of Gaussian (i.e. sigma)
         """
-        amp = 1.1
-        return self.Gaussian_2D(self.xxyy, x0, y0, width, amp)
+        amp = 1.0
+        return self.Gaussian_3D(self.xyz, x0, y0, z0, width, amp)
 
 
-    def Multimodal_Model(self, x0, y0, width):#, sigma_x, sigma_y, amplitude):
+    def Multimodal_Model(self, x0, y0, z0, width):#, sigma_x, sigma_y, amplitude):
         """
         Args:
             x0 (array): list of x coords of centre of Gaussians
             y0 (array): list of y coords of centre of Gaussians
+            z0 (array): list of z coords of centre of Gaussians
             width (array): widths of Gaussians (i.e. sigma)
         """
-        amp = 1.1
-        model = np.zeros_like(self.xxyy[0])
+        amp = 1.
+        model = np.zeros_like(self.xyz[0])
         for i in range(len(x0)):
-            model += self.Gaussian_2D(self.xxyy, x0[i], y0[i], width[i], amp)
+            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], width[i], amp)
         return model
 
 
@@ -86,33 +93,47 @@ class MN2:
         Map unit Prior cube onto non-unit paramter space
 
         Args:
-            cube - [x0a, y0a, x0b, y0b]
-                Each element is an float
+            cube - [x0, y0, z0, width]
             ndim - the number of dimensions of the (hyper)cube
             nparams - WTF
         """
-        # x0, y0:
-        cube[0], cube[1] = 10.*cube[0] - 5., 10.*cube[1] - 5.
+        def transform_centres(i):
+            cube[i] = max(self.x_range) * cube[i]
+        def transform_widths(i):
+            cube[i] = max(self.x_range) * cube[i]
+        # x0, y0, z0:
+        for i in [0, 1, 2]:
+            transform_centres(i)
         # width:
-        cube[2] = 2.*cube[2]
+        transform_widths(3)
 
 
     def Loglike(self, cube, ndim, nparams):
-        x0, y0 = cube[0], cube[1]
-        width = cube[2]
+        x0, y0, z0 = cube[0], cube[1], cube[2]
+        width = cube[3]
 
-        model = self.Unimodal_Model(x0, y0, width)#, x0b, y0b)#, xsigma, ysigma, amplitude)
+        model = self.Unimodal_Model(x0, y0, z0, width)#, x0b, y0b)#, xsigma, ysigma, amplitude)
         loglikelihood = (-0.5 * ((model - self.data) / self.scatter)**2).sum()
 
         return loglikelihood
 
 
-    def _plot(self, data):
-        plt.figure()
+    def _plot(self, data, z_index=32):
+        lims = [min(self.x_range), max(self.x_range), min(self.x_range), max(self.x_range)]
+
+        fig = plt.figure()
+        sub_fig = fig.add_subplot(111)
+        print "Taking a slice along the LOS direction at index="+str(z_index)
+        the_slice = data[:,:,z_index]
+
+        frame1 = plt.gca()
         color_map = LinearSegmentedColormap.from_list('mycmap', ['black', 'red', 'yellow', 'white'])
+        c_dens = sub_fig.imshow(the_slice, cmap=color_map, extent=lims, origin="lower")
+        # c_dens.set_clim(vmin=minrange,vmax=maxrange)
+        c_bar = fig.colorbar(c_dens, orientation='vertical')
         plt.axis('equal')
-        plt.pcolormesh(self.x, self.y, data, cmap=color_map, vmin=0., vmax=2.)#max(self.amplitude_range))
-        plt.colorbar()
+        plt.xlim(lims[:2])
+        plt.ylim(lims[2:])
 
 
     def generate_data(self, filename, noise=0.03):
@@ -123,18 +144,18 @@ class MN2:
             filename (str)
             noise (float)
         """
-        x0, y0 = np.random.uniform(-5., 5., self.num), np.random.uniform(-5., 5., self.num)
-        width = np.random.uniform(0.1, 2., self.num)
+        x0, y0, z0 = np.random.uniform(*self.x_range, size=self.num), np.random.uniform(*self.x_range, size=self.num), np.random.uniform(30., 34., size=self.num)
+        width = np.random.uniform(1., 10., self.num)
 
-        data = self.Multimodal_Model(x0, y0, width)#, sigma_x, sigma_y, amplitude)
-        data = np.random.normal(data, noise)
-        np.savetxt("out/" + filename, data)
+        data = self.Multimodal_Model(x0, y0, z0, width)#, sigma_x, sigma_y, amplitude)
+        # data = np.random.normal(data, noise)
+        np.savetxt("out/" + filename, data.flatten())
 
         self._plot(data)
         plt.savefig("out/" + filename + "_fig.png")
 
 
-    def run_sampling(self, datafile, marginals=True, n_points=500, scatter=4., resume=False, mode_tolerance=-1e20, verbose=False):
+    def run_sampling(self, datafile, marginals=True, n_points=1000, scatter=4., resume=False, mode_tolerance=-1e20, verbose=False):
         """
         Run PyMultiNest against single Gaussian.
 
@@ -142,7 +163,7 @@ class MN2:
             datafile (str): The filename of the data
             scatter (float): Sampling scatter value
         """
-        self.data = np.loadtxt(datafile)
+        self.data = np.loadtxt(datafile).reshape((self.array_size, self.array_size, self.array_size))
         self.scatter = scatter
 
         # run MultiNest
