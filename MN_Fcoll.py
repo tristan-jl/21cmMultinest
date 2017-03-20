@@ -23,7 +23,7 @@ class MN2:
 
         self.array_size = 64
 
-        self.x_range = (0., 75.)
+        self.x_range = (0., 64.)
         # self.sigma_range = (0.2, 1.)
         # self.amplitude_range = (0.1, 2.,)
 
@@ -100,7 +100,7 @@ class MN2:
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
         def transform_widths(i):
-            cube[i] = max(self.x_range) * cube[i]
+            cube[i] = max(self.x_range)/5. * cube[i]
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
@@ -129,7 +129,7 @@ class MN2:
         frame1 = plt.gca()
         color_map = LinearSegmentedColormap.from_list('mycmap', ['black', 'red', 'yellow', 'white'])
         c_dens = sub_fig.imshow(the_slice, cmap=color_map, extent=lims, origin="lower")
-        # c_dens.set_clim(vmin=minrange,vmax=maxrange)
+        c_dens.set_clim(vmin=0,vmax=1)
         c_bar = fig.colorbar(c_dens, orientation='vertical')
         plt.axis('equal')
         plt.xlim(lims[:2])
@@ -144,15 +144,17 @@ class MN2:
             filename (str)
             noise (float)
         """
-        x0, y0, z0 = np.random.uniform(*self.x_range, size=self.num), np.random.uniform(*self.x_range, size=self.num), np.random.uniform(30., 34., size=self.num)
-        width = np.random.uniform(1., 10., self.num)
+        x0, y0, z0 = np.random.uniform(*self.x_range, size=self.num), np.random.uniform(*self.x_range, size=self.num), np.array([32,32,32,32])#np.random.uniform(31., 33., size=self.num)
+        width = np.random.uniform(1., 5., self.num)
 
-        data = self.Multimodal_Model(x0, y0, z0, width)#, sigma_x, sigma_y, amplitude)
+        self.data = self.Multimodal_Model(x0, y0, z0, width)#, sigma_x, sigma_y, amplitude)
         # data = np.random.normal(data, noise)
-        np.savetxt("out/" + filename, data.flatten())
+        np.savetxt("out/" + filename, self.data.flatten())
 
-        self._plot(data)
+        self._plot(self.data)
         plt.savefig("out/" + filename + "_fig.png")
+
+        print x0, "\n", y0, "\n", z0, "\n", width
 
 
     def run_sampling(self, datafile, marginals=True, n_points=1000, scatter=4., resume=False, mode_tolerance=-1e20, verbose=False):
@@ -182,7 +184,7 @@ class MN2:
             print "No modes detected"
             return 0
 
-        fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2])#, means[2], means[3])
+        fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3])#, means[2], means[3])
         self._plot(fit_data)
         plt.savefig(datafile + "_1_fig.png")
 
