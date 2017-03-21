@@ -157,7 +157,7 @@ class MN2:
         print x0, "\n", y0, "\n", z0, "\n", width
 
 
-    def run_sampling(self, datafile, marginals=True, n_points=1000, scatter=4., resume=False, mode_tolerance=-1e20, verbose=False, max_iter=0):
+    def run_sampling(self, datafile, marginals=True, n_points=1000, scatter=4., resume=False, mode_tolerance=-1e90, verbose=False, max_iter=0):
         """
         Run PyMultiNest against single Gaussian.
 
