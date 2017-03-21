@@ -100,7 +100,7 @@ class MN2:
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
         def transform_widths(i):
-            cube[i] = max(self.x_range)/5. * cube[i]
+            cube[i] = max(self.x_range)/10. * cube[i]
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
@@ -157,7 +157,7 @@ class MN2:
         print x0, "\n", y0, "\n", z0, "\n", width
 
 
-    def run_sampling(self, datafile, marginals=True, n_points=1000, scatter=4., resume=False, mode_tolerance=-1e20, verbose=False):
+    def run_sampling(self, datafile, marginals=True, n_points=1000, scatter=4., resume=False, mode_tolerance=-1e20, verbose=False, max_iter=0):
         """
         Run PyMultiNest against single Gaussian.
 
@@ -169,7 +169,7 @@ class MN2:
         self.scatter = scatter
 
         # run MultiNest
-        pymultinest.run(self.Loglike, self.Prior, self.n_params, outputfiles_basename=datafile+'_1_', n_live_points=n_points, resume=resume, importance_nested_sampling=False, mode_tolerance=mode_tolerance, verbose=verbose)
+        pymultinest.run(self.Loglike, self.Prior, self.n_params, outputfiles_basename=datafile+'_1_', n_live_points=n_points, resume=resume, importance_nested_sampling=False, mode_tolerance=mode_tolerance, verbose=verbose, max_iter=max_iter)
         json.dump(self.parameters, open(datafile + '_1_params.json', 'w')) # save parameter names
 
         self.pm_analyser = pymultinest.analyse.Analyzer(self.n_params, outputfiles_basename=datafile+'_1_')
@@ -202,7 +202,7 @@ class MN2:
         self.pm_analyser = pymultinest.Analyzer(self.n_params, outputfiles_basename=datafile+'_1_')
         self.pm_marg_modes = pymultinest.PlotMarginalModes(self.pm_analyser)
 
-        fig = plt.figure(figsize=(3*self.n_params, 3*self.n_params))
+        fig = plt.figure(figsize=(5*self.n_params, 5*self.n_params))
         for i in range(self.n_params):
             plt.subplot(self.n_params, self.n_params, self.n_params * i + i + 1)
             self.pm_marg_modes.plot_marginal(i, grid_points=100)
@@ -212,8 +212,8 @@ class MN2:
             for j in range(i):
                 plt.subplot(self.n_params, self.n_params, self.n_params * j + i + 1)
                 self.pm_marg_modes.plot_marginal(j, i, with_ellipses=False) # WITH_ELLIPSES=FALSE!!!!
-                plt.xlabel(self.parameters[i])
-                plt.ylabel(self.parameters[j])
+                plt.xlabel(self.parameters[j])
+                plt.ylabel(self.parameters[i])
                 # plt.savefig(datafile + "_1_marg_" + str(i) + "_" + str(j) + ".png")
         plt.savefig(datafile + "_1_marg.png")
 
