@@ -6,7 +6,32 @@ import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
 import pymultinest
 import json
-# import sys, getopt
+import sys#, getopt
+
+
+def load_binary_data(filename, dtype=np.float32):
+     """
+     We assume that the data was written with write_binary_data() (little endian).
+     """
+     f = open(filename, "rb")
+     data = f.read()
+     f.close()
+     _data = np.fromstring(data, dtype)
+     if sys.byteorder == 'big':
+       _data = _data.byteswap()
+     return _data
+
+def write_binary_data(filename, data, dtype=np.float32):
+     """
+     Write binary data to a file and make sure it is always in little endian format.
+     """
+     f = open(filename, "wb")
+     _data = np.asarray(data, dtype)
+     if sys.byteorder == 'big':
+         _data = _data.byteswap()
+     f.write(_data)
+     f.close()
+
 
 class MN2:
     def __init__(self, num=4, generate=False, run=False, marginals=False, filename=None):
@@ -131,7 +156,7 @@ class MN2:
         c_dens = sub_fig.imshow(the_slice, cmap=color_map, extent=lims, origin="lower")
         c_dens.set_clim(vmin=0,vmax=1)
         c_bar = fig.colorbar(c_dens, orientation='vertical')
-        plt.axis('equal')
+        # plt.axis('equal')
         plt.xlim(lims[:2])
         plt.ylim(lims[2:])
 
@@ -149,7 +174,7 @@ class MN2:
 
         self.data = self.Multimodal_Model(x0, y0, z0, width)#, sigma_x, sigma_y, amplitude)
         # data = np.random.normal(data, noise)
-        np.savetxt("out/" + filename, self.data.flatten())
+        write_binary_data("out/" + filename, self.data.flatten())
 
         self._plot(self.data)
         plt.savefig("out/" + filename + "_fig.png")
@@ -165,7 +190,7 @@ class MN2:
             datafile (str): The filename of the data
             scatter (float): Sampling scatter value
         """
-        self.data = np.loadtxt(datafile).reshape((self.array_size, self.array_size, self.array_size))
+        self.data = load_binary_data(datafile).reshape((self.array_size, self.array_size, self.array_size))
         self.scatter = scatter
 
         # run MultiNest
