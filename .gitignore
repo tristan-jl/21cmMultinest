@@ -6,3 +6,5 @@ multinesttesting4_output/*
 *.pdf
 run.sh
 test.py
+test1D.py
+*.pyc
