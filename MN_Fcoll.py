@@ -125,7 +125,7 @@ class MN2:
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
         def transform_widths(i):
-            cube[i] = max(self.x_range)/10. * cube[i]
+            cube[i] = 2. * cube[i] #max(self.x_range)/10. * cube[i]
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
