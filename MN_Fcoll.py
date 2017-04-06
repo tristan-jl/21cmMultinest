@@ -43,7 +43,7 @@ class MN2:
             marginals (bool): whether or not to plot the marginals
             filename (str): the filename in the out/ directory (must be specified if any of the 3 above are True)
         """
-        self.parameters = ["x0", "y0", "z0", "width"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
+        self.parameters = ["x0", "y0", "z0", "amplitude"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
         self.n_params = len(self.parameters)
 
         self.array_size = 64
@@ -86,7 +86,7 @@ class MN2:
         return amplitude * normalisation * np.exp(-0.5 * ( ((x-x0)/sigma)**2 + ((y-y0)/sigma)**2  + ((z-z0)/sigma)**2 ))
 
 
-    def Unimodal_Model(self, x0, y0, z0, width):#, sigma_x, sigma_y, amplitude):
+    def Unimodal_Model(self, x0, y0, z0, amp):#, sigma_x, sigma_y, amplitude):
         """
         Args:
             x0 (float): x coord of centre of Gaussian
@@ -94,11 +94,11 @@ class MN2:
             z0 (float): z coord of centre of Gaussian
             width (float): width of Gaussian (i.e. sigma)
         """
-        amp = 1.0
+        width = 1.0
         return self.Gaussian_3D(self.xyz, x0, y0, z0, width, amp)
 
 
-    def Multimodal_Model(self, x0, y0, z0, width):#, sigma_x, sigma_y, amplitude):
+    def Multimodal_Model(self, x0, y0, z0, amp):#, sigma_x, sigma_y, amplitude):
         """
         Args:
             x0 (array): list of x coords of centre of Gaussians
@@ -106,10 +106,10 @@ class MN2:
             z0 (array): list of z coords of centre of Gaussians
             width (array): widths of Gaussians (i.e. sigma)
         """
-        amp = 1.
+        width = 1.
         model = np.zeros_like(self.xyz[0])
         for i in range(len(x0)):
-            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], width[i], amp)
+            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], width, amp[i])
         return model
 
 
@@ -124,20 +124,20 @@ class MN2:
         """
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
-        def transform_widths(i):
-            cube[i] = 2. * cube[i] #max(self.x_range)/10. * cube[i]
+        # def transform_widths(i):
+        #     cube[i] = 2. * cube[i] #max(self.x_range)/10. * cube[i]
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
         # width:
-        transform_widths(3)
+        # transform_widths(3)
 
 
     def Loglike(self, cube, ndim, nparams):
         x0, y0, z0 = cube[0], cube[1], cube[2]
-        width = cube[3]
+        amp = cube[3]
 
-        model = self.Unimodal_Model(x0, y0, z0, width)#, x0b, y0b)#, xsigma, ysigma, amplitude)
+        model = self.Unimodal_Model(x0, y0, z0, amp)#, x0b, y0b)#, xsigma, ysigma, amplitude)
         loglikelihood = (-0.5 * ((model - self.data) / self.scatter)**2).sum()
 
         return loglikelihood
