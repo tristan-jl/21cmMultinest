@@ -4,38 +4,49 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
-import pymultinest
 import json
-import sys, getopt
+import sys
+# import getopt
 import time
-
-
-file_in_opt = ""
-resume_opt = False
-live_points_opt = 1000
-scatter_opt = 1.
-
 try:
-    opts, args = getopt.getopt(sys.argv[1:], "h:i:n:s:", ["resume"])
-except getopt.GetoptError:
-    print USAGE
-    sys.exit(2)
-# print opts, args
-for opt, arg in opts:
-    if opt in ("-h", "--h", "--help"):
-        print USAGE
-        sys.exit()
-    elif opt in ("-i"):
-        file_in_opt = arg
-    elif opt in ("--resume"):
-        resume_opt = True
-    elif opt in ("-n"):
-        live_points_opt = int(arg)
-    elif opt in ("-s"):
-        scatter_opt = float(arg)
-if file_in_opt == "":
-    print USAGE
-    sys.exit()
+    import pymultinest
+    ANALYSIS_MODE = False
+except:
+    import imp
+    # import pymultinest.plot as pmt:
+    pmt = imp.load_source("plot", "C:/Users/Ronnie/Documents/PyMultiNest/pymultinest/plot.py")
+    # import pymultinest.analyse as pma:
+    pma = imp.load_source("analyse", "C:/Users/Ronnie/Documents/PyMultiNest/pymultinest/analyse.py")
+    ANALYSIS_MODE = True
+    exc_info = sys.exc_info()
+
+
+# file_in_opt = ""
+# resume_opt = False
+# live_points_opt = 1000
+# scatter_opt = 1.
+#
+# try:
+#     opts, args = getopt.getopt(sys.argv[1:], "h:i:n:s:", ["resume"])
+# except getopt.GetoptError:
+#     print USAGE
+#     sys.exit(2)
+# # print opts, args
+# for opt, arg in opts:
+#     if opt in ("-h", "--h", "--help"):
+#         print USAGE
+#         sys.exit()
+#     elif opt in ("-i"):
+#         file_in_opt = arg
+#     elif opt in ("--resume"):
+#         resume_opt = True
+#     elif opt in ("-n"):
+#         live_points_opt = int(arg)
+#     elif opt in ("-s"):
+#         scatter_opt = float(arg)
+# if file_in_opt == "":
+#     print USAGE
+#     sys.exit()
 
 
 
@@ -64,7 +75,7 @@ def write_binary_data(filename, data, dtype=np.float32):
 
 
 class MN:
-    def __init__(self, filename=None, run=True, marginals=True):
+    def __init__(self, filename=None):#, run=True, marginals=True):
         """
         Args:
             filename (str): the filename of the box
@@ -93,15 +104,6 @@ class MN:
             raise Exception("No filename specified")
         self.filename = filename
         self.data = load_binary_data(self.filename).reshape((self.array_size, self.array_size, self.array_size))
-
-        if run == True:
-            if marginals == True:
-                self.run_sampling(marginals=True, n_points=live_points_opt, resume=resume_opt, scatter=scatter_opt)
-            else:
-                self.run_sampling(marginals=False, n_points=live_points_opt, resume=resume_opt, scatter=scatter_opt)
-        elif marginals == True:
-            self.marginals()
-
 
 
     def Gaussian_3D(self, coord, x0, y0, z0, width, amplitude):
@@ -198,6 +200,9 @@ class MN:
         Args:
             scatter (float): Sampling scatter value
         """
+        if ANALYSIS_MODE:
+            raise Exception("Could not load full PyMultiNest. Analysis mode only. {0}".format(exc_info))
+
         self.scatter = scatter
 
         start_time = time.time()
@@ -209,37 +214,41 @@ class MN:
 
         json.dump(self.parameters, open(self.filename + '_1_params.json', 'w')) # save parameter names
 
-        self.pm_analyser = pymultinest.analyse.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
-        mode_stats = self.pm_analyser.get_mode_stats()["modes"]
-        # print mode_stats
-        n_modes = len(mode_stats)
-        means = np.array([mode_stats[i]["mean"] for i in range(n_modes)])
-        sigmas = np.array([mode_stats[i]["sigma"] for i in range(n_modes)])
-        optimal_params = np.dstack((means, sigmas))
-
-        print " "
-        if len(means) == 0:
-            print "No modes detected"
-            return 0
-
-        fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3])#, means[2], means[3])
-        self._plot(fit_data)
-        plt.savefig(self.filename + "_1_fig.png")
-
-        # for n in range(len(optimal_params)):
-        #     mode = optimal_params[n]
-        #     print "Mode", n
-        #     for i in range(self.n_params):
-        #         print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
-        print "Modes detected:", len(optimal_params)
-
-        if marginals == True:
-            self.marginals()
+        # self.pm_analyser = pymultinest.analyse.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
+        # mode_stats = self.pm_analyser.get_mode_stats()["modes"]
+        # # print mode_stats
+        # n_modes = len(mode_stats)
+        # means = np.array([mode_stats[i]["mean"] for i in range(n_modes)])
+        # sigmas = np.array([mode_stats[i]["sigma"] for i in range(n_modes)])
+        # optimal_params = np.dstack((means, sigmas))
+        #
+        # print " "
+        # if len(means) == 0:
+        #     print "No modes detected"
+        #     return 0
+        #
+        # fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3])#, means[2], means[3])
+        # self._plot(fit_data)
+        # plt.savefig(self.filename + "_1_fig.png")
+        #
+        # # for n in range(len(optimal_params)):
+        # #     mode = optimal_params[n]
+        # #     print "Mode", n
+        # #     for i in range(self.n_params):
+        # #         print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
+        # print "Modes detected:", len(optimal_params)
+        #
+        # if marginals == True:
+        #     self.marginals()
 
 
     def marginals(self):
-        self.pm_analyser = pymultinest.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
-        self.pm_marg_modes = pymultinest.PlotMarginalModes(self.pm_analyser)
+        if ANALYSIS_MODE:
+            self.pm_analyser = pma.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
+            self.pm_marg_modes = pmt.PlotMarginalModes(self.pm_analyser)
+        else:
+            self.pm_analyser = pymultinest.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
+            self.pm_marg_modes = pymultinest.PlotMarginalModes(self.pm_analyser)
 
         fig = plt.figure(figsize=(5*self.n_params, 5*self.n_params))
         for i in range(self.n_params):
@@ -257,5 +266,34 @@ class MN:
         plt.savefig(self.filename + "_1_marg.png")
 
 
+    def save_modes(self):
+        if ANALYSIS_MODE:
+            self.pm_analyser = pma.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
+        else:
+            self.pm_analyser = pymultinest.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
 
-A = MN(filename=file_in_opt, run=True, marginals=False)
+        mode_stats = self.pm_analyser.get_mode_stats()["modes"]
+        # print mode_stats
+        n_modes = len(mode_stats)
+        means = np.array([mode_stats[i]["mean"] for i in range(n_modes)])
+        sigmas = np.array([mode_stats[i]["sigma"] for i in range(n_modes)])
+        optimal_params = np.dstack((means, sigmas))
+
+        if len(means) == 0:
+            print "No modes detected"
+        else:
+            fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3])
+            self._plot(fit_data)
+            plt.savefig(self.filename + "_1_fig.png")
+            if self.filename[-3:] == "Mpc":
+                datafile_split = self.filename.split("_")
+                outfile = "_".join(datafile_split[:-2]) + "_MODES_" + "_".join(datafile_split[-2:])
+            else:
+                outfile = self.filename
+            write_binary_data(outfile, fit_data.flatten())
+
+            for n in range(len(optimal_params)):
+                mode = optimal_params[n]
+                print "Mode", n
+                for i in range(self.n_params):
+                    print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
