@@ -1,6 +1,7 @@
 USAGE = '[mpiexec -n 4] python MN_Fcoll.py -i <file in (box)> [-n <number of live points>] [-s <scatter value>] [--resume]'
 
 import numpy as np
+from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
@@ -19,8 +20,6 @@ except:
     pma = imp.load_source("analyse", "C:/Users/Ronnie/Documents/PyMultiNest/pymultinest/analyse.py")
     ANALYSIS_MODE = True
     exc_info = sys.exc_info()
-
-
 
 
 def load_binary_data(filename, dtype=np.float32):
@@ -55,7 +54,7 @@ class MN:
             run (bool): whether or not to run MultiNest
             marginals (bool): whether or not to plot the marginals
         """
-        self.parameters = ["x0", "y0", "z0", "width", "amplitude"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
+        self.parameters = ["x0", "y0", "z0", "covxx", "covyy", "covzz", "amplitude"]#, "covxy", "covxz", "covyz"]
         self.n_params = len(self.parameters)
 
         self.array_size = 64
@@ -78,42 +77,46 @@ class MN:
         self.data = load_binary_data(self.filename).reshape((self.array_size, self.array_size, self.array_size))
 
 
-    def Gaussian_3D(self, coord, x0, y0, z0, width, amplitude):
+    def Gaussian_3D(self, coord, x0, y0, z0, covxx, covyy, covzz, amplitude):
         x, y, z = coord
-        # sigma_x, sigma_y = width, width
-        sigma = width
+        cov_matrix= [[covxx, 0., 0.], [0., covyy, 0.], [0., 0., covzz]]
         normalisation = 1.
+        
+        rv = multivariate_normal(mean = [x0, y0, z0], cov = cov_matrix)
+        
+        return amplitude * rv.pdf(np.stack((x,y,z), axis = -1))
 
-        # for i in range(len(width)):
-        #     normalisation *= 1. / (width[i] * np.sqrt(2*np.pi))
 
-        return amplitude * normalisation * np.exp(-0.5 * ( ((x-x0)/sigma)**2 + ((y-y0)/sigma)**2  + ((z-z0)/sigma)**2 ))
-
-
-    def Unimodal_Model(self, x0, y0, z0, width, amp):#, sigma_x, sigma_y, amplitude):
+    def Unimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):#, sigma_x, sigma_y, amplitude):
         """
         Args:
             x0 (float): x coord of centre of Gaussian
             y0 (float): y coord of centre of Gaussian
             z0 (float): z coord of centre of Gaussian
-            width (float): width of Gaussian (i.e. sigma)
+            covxx (float): width of Gaussian in x dimension
+            covyy (float): width of Gaussian in y dimension
+            covzz (float): width of Gaussian in z dimension
+            amp (float): amplitude of Gaussian
         """
         # amp = 1.0
-        return self.Gaussian_3D(self.xyz, x0, y0, z0, width, amp)
+        return self.Gaussian_3D(self.xyz, x0, y0, z0, covxx, covyy, covzz, amp)
 
 
-    def Multimodal_Model(self, x0, y0, z0, width, amp):#, sigma_x, sigma_y, amplitude):
+    def Multimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):#, sigma_x, sigma_y, amplitude):
         """
         Args:
             x0 (array): list of x coords of centre of Gaussians
             y0 (array): list of y coords of centre of Gaussians
             z0 (array): list of z coords of centre of Gaussians
-            width (array): widths of Gaussians (i.e. sigma)
+            covxx (array): list of widths of Gaussians in x dimension
+            covyy (array): list of widths of Gaussians in y dimension
+            covzz (array): list of widths of Gaussians in z dimension
+            amp (array): list of amplitudes of Gaussians
         """
         # amp = 1.
         model = np.zeros_like(self.xyz[0])
         for i in range(len(x0)):
-            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], width[i], amp[i])
+            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], covxx[i], covyy[i], covzz[i], amp[i])
         return model
 
 
@@ -122,9 +125,9 @@ class MN:
         Map unit Prior cube onto non-unit paramter space
 
         Args:
-            cube - [x0, y0, z0, width]
+            cube - [x0, y0, z0, covxx, covyy, covzz]
             ndim - the number of dimensions of the (hyper)cube
-            nparams - WTF
+            nparams - WTF lol
         """
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
@@ -133,16 +136,17 @@ class MN:
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
-        # width:
-        transform_widths(3)
+        # widths:
+        for i in [3, 4, 5]:
+            transform_widths(i)
 
 
     def Loglike(self, cube, ndim, nparams):
         x0, y0, z0 = cube[0], cube[1], cube[2]
-        width = cube[3]
-        amp = cube[4]
+        covxx, covyy, covzz = cube[3], cube[4], cube[5]
+        amp = cube[6]
 
-        model = self.Unimodal_Model(x0, y0, z0, width, amp)#, x0b, y0b)#, xsigma, ysigma, amplitude)
+        model = self.Unimodal_Model(x0, y0, z0, covxx, covyy, covzz, amp)#, x0b, y0b)#, xsigma, ysigma, amplitude)
         loglikelihood = (-0.5 * ((model - self.data) / self.scatter)**2).sum()
 
         return loglikelihood
@@ -228,7 +232,7 @@ class MN:
         if len(means) == 0:
             print "No modes detected"
         else:
-            fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3], means[:,4])
+            fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3], means[:,4], means[:,5], means[:,6])
             self._plot(fit_data)
             plt.savefig(self.filename + "_1_fig.png")
             if self.filename[-3:] == "Mpc":
