@@ -1,7 +1,10 @@
 USAGE = '[mpiexec -n 4] python MN_Fcoll.py -i <file in (box)> [-n <number of live points>] [-s <scatter value>] [--resume]'
 
 import numpy as np
-from scipy.stats import multivariate_normal
+try:
+    from scipy.stats import multivariate_normal
+except:
+    pass
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
@@ -79,15 +82,21 @@ class MN:
 
     def Gaussian_3D(self, coord, x0, y0, z0, covxx, covyy, covzz, amplitude):
         x, y, z = coord
-        cov_matrix= [[covxx, 0., 0.], [0., covyy, 0.], [0., 0., covzz]]
+        cov_matrix = [[covxx, 0., 0.], [0., covyy, 0.], [0., 0., covzz]]
         normalisation = 1.
-        
-        rv = multivariate_normal(mean = [x0, y0, z0], cov = cov_matrix)
-        
-        return amplitude * rv.pdf(np.stack((x,y,z), axis = -1))
+        try:
+            rv = multivariate_normal(mean = [x0, y0, z0], cov = cov_matrix)
+            return amplitude * rv.pdf(np.stack((x,y,z), axis = -1))
+        except:
+            coord = np.array(coord)
+            centre = np.array([x0, y0, z0])
+            cov_matrix = np.array(cov_matrix)
+            x_min_mu = np.array([coord[0] - centre[0], coord[1] - centre[1], coord[2] - coord[2]])
+            return [x_min_mu, cov_matrix]
+            # return (amplitude / np.sqrt((2.*np.pi) * np.linalg.det(cov_matrix))) * np.exp(-0.5 * x_min_mu.T.dot(np.linalg.inv(cov_matrix)).dot(x_min_mu))
 
 
-    def Unimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):#, sigma_x, sigma_y, amplitude):
+    def Unimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):
         """
         Args:
             x0 (float): x coord of centre of Gaussian
@@ -102,7 +111,7 @@ class MN:
         return self.Gaussian_3D(self.xyz, x0, y0, z0, covxx, covyy, covzz, amp)
 
 
-    def Multimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):#, sigma_x, sigma_y, amplitude):
+    def Multimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):
         """
         Args:
             x0 (array): list of x coords of centre of Gaussians
