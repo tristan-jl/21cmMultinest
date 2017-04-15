@@ -21,34 +21,6 @@ except:
     exc_info = sys.exc_info()
 
 
-# file_in_opt = ""
-# resume_opt = False
-# live_points_opt = 1000
-# scatter_opt = 1.
-#
-# try:
-#     opts, args = getopt.getopt(sys.argv[1:], "h:i:n:s:", ["resume"])
-# except getopt.GetoptError:
-#     print USAGE
-#     sys.exit(2)
-# # print opts, args
-# for opt, arg in opts:
-#     if opt in ("-h", "--h", "--help"):
-#         print USAGE
-#         sys.exit()
-#     elif opt in ("-i"):
-#         file_in_opt = arg
-#     elif opt in ("--resume"):
-#         resume_opt = True
-#     elif opt in ("-n"):
-#         live_points_opt = int(arg)
-#     elif opt in ("-s"):
-#         scatter_opt = float(arg)
-# if file_in_opt == "":
-#     print USAGE
-#     sys.exit()
-
-
 
 def load_binary_data(filename, dtype=np.float32):
      """
@@ -82,7 +54,7 @@ class MN:
             run (bool): whether or not to run MultiNest
             marginals (bool): whether or not to plot the marginals
         """
-        self.parameters = ["x0", "y0", "z0", "amplitude"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
+        self.parameters = ["x0", "y0", "z0"]#["x0a", "y0a", "x0b", "y0b"]#, "sigma_x", "sigma_y", "amplitude"]
         self.n_params = len(self.parameters)
 
         self.array_size = 64
@@ -99,6 +71,7 @@ class MN:
         self.xx, self.yy, self.zz = self.xyz
 
         self.Gaussian_width = 1.
+        self.Gaussian_amp = 1.
 
         if filename == None:
             raise Exception("No filename specified")
@@ -118,30 +91,30 @@ class MN:
         return amplitude * normalisation * np.exp(-0.5 * ( ((x-x0)/sigma)**2 + ((y-y0)/sigma)**2  + ((z-z0)/sigma)**2 ))
 
 
-    def Unimodal_Model(self, x0, y0, z0, amp):#, sigma_x, sigma_y, amplitude):
+    def Unimodal_Model(self, x0, y0, z0):
         """
         Args:
             x0 (float): x coord of centre of Gaussian
             y0 (float): y coord of centre of Gaussian
             z0 (float): z coord of centre of Gaussian
-            width (float): width of Gaussian (i.e. sigma)
         """
         width = self.Gaussian_width
+        amp = self.Gaussian_amp
         return self.Gaussian_3D(self.xyz, x0, y0, z0, width, amp)
 
 
-    def Multimodal_Model(self, x0, y0, z0, amp):#, sigma_x, sigma_y, amplitude):
+    def Multimodal_Model(self, x0, y0, z0):
         """
         Args:
             x0 (array): list of x coords of centre of Gaussians
             y0 (array): list of y coords of centre of Gaussians
             z0 (array): list of z coords of centre of Gaussians
-            width (array): widths of Gaussians (i.e. sigma)
         """
         width = self.Gaussian_width
+        amp = self.Gaussian_amp
         model = np.zeros_like(self.xyz[0])
         for i in range(len(x0)):
-            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], width, amp[i])
+            model += self.Gaussian_3D(self.xyz, x0[i], y0[i], z0[i], width, amp)
         return model
 
 
@@ -150,26 +123,21 @@ class MN:
         Map unit Prior cube onto non-unit paramter space
 
         Args:
-            cube - [x0, y0, z0, width]
+            cube - [x0, y0, z0]
             ndim - the number of dimensions of the (hyper)cube
             nparams - WTF
         """
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
-        # def transform_widths(i):
-        #     cube[i] = 2. * cube[i] #max(self.x_range)/10. * cube[i]
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
-        # width:
-        # transform_widths(3)
 
 
     def Loglike(self, cube, ndim, nparams):
         x0, y0, z0 = cube[0], cube[1], cube[2]
-        amp = cube[3]
 
-        model = self.Unimodal_Model(x0, y0, z0, amp)#, x0b, y0b)#, xsigma, ysigma, amplitude)
+        model = self.Unimodal_Model(x0, y0, z0)
         loglikelihood = (-0.5 * ((model - self.data) / self.scatter)**2).sum()
 
         return loglikelihood
@@ -214,33 +182,6 @@ class MN:
 
         json.dump(self.parameters, open(self.filename + '_1_params.json', 'w')) # save parameter names
 
-        # self.pm_analyser = pymultinest.analyse.Analyzer(self.n_params, outputfiles_basename=self.filename+'_1_')
-        # mode_stats = self.pm_analyser.get_mode_stats()["modes"]
-        # # print mode_stats
-        # n_modes = len(mode_stats)
-        # means = np.array([mode_stats[i]["mean"] for i in range(n_modes)])
-        # sigmas = np.array([mode_stats[i]["sigma"] for i in range(n_modes)])
-        # optimal_params = np.dstack((means, sigmas))
-        #
-        # print " "
-        # if len(means) == 0:
-        #     print "No modes detected"
-        #     return 0
-        #
-        # fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3])#, means[2], means[3])
-        # self._plot(fit_data)
-        # plt.savefig(self.filename + "_1_fig.png")
-        #
-        # # for n in range(len(optimal_params)):
-        # #     mode = optimal_params[n]
-        # #     print "Mode", n
-        # #     for i in range(self.n_params):
-        # #         print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
-        # print "Modes detected:", len(optimal_params)
-        #
-        # if marginals == True:
-        #     self.marginals()
-
 
     def marginals(self):
         if ANALYSIS_MODE:
@@ -282,7 +223,7 @@ class MN:
         if len(means) == 0:
             print "No modes detected"
         else:
-            fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2], means[:,3])
+            fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2])
             self._plot(fit_data)
             plt.savefig(self.filename + "_1_fig.png")
             if self.filename[-3:] == "Mpc":
