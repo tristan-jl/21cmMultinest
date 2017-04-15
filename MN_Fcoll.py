@@ -88,12 +88,25 @@ class MN:
             rv = multivariate_normal(mean = [x0, y0, z0], cov = cov_matrix)
             return amplitude * rv.pdf(np.stack((x,y,z), axis = -1))
         except:
-            coord = np.array(coord)
-            centre = np.array([x0, y0, z0])
-            cov_matrix = np.array(cov_matrix)
-            x_min_mu = np.array([coord[0] - centre[0], coord[1] - centre[1], coord[2] - coord[2]])
-            return [x_min_mu, cov_matrix]
+            # coord = np.array(coord)
+            # centre = np.array([x0, y0, z0])
+            # cov_matrix = np.array(cov_matrix)
+            # x_min_mu = np.array([coord[0] - centre[0], coord[1] - centre[1], coord[2] - coord[2]])
+            # return [coord, x_min_mu, cov_matrix]
             # return (amplitude / np.sqrt((2.*np.pi) * np.linalg.det(cov_matrix))) * np.exp(-0.5 * x_min_mu.T.dot(np.linalg.inv(cov_matrix)).dot(x_min_mu))
+            E = np.array(cov_matrix)
+            E_inv = np.linalg.inv(E)
+            V = [(x - x0) * E_inv[0,i] + (y - y0) * E_inv[1,i] + (z - z0) * E_inv[2,i] for i in [0, 1, 2]]
+            W = (x - x0) * V[0] + (y - y0) * V[1] + (z - z0) * V[2]
+
+            # return (amplitude / np.sqrt(np.linalg.det(2 * np.pi * E))) * np.exp(-0.5 * W)
+            return amplitude * np.exp(-0.5 * W)
+
+            # w = (x - x0)**2 * (p[1,2]**2 - 1.) + (y - y0)**2 * (p[0,2]**2 - 1.) + (z - z0)**2 * (p[0,1]**2 - 1) + 2. * ((x - x0) * (y - y0) * (p[0,1] - p[0,2] * p[1,2]) + (x - x0) * (z - z0) * (p[0,2] - p[0,1] * p[1,2]) + (y - y0) * (z - z0) * (p[1,2] - p[0,1] * p[0,2]))
+            # num = np.exp(-w / (2. * (p[0,1]**2 + p[0,2]**2 + p[1,2]**2 - 2. * p[0,1] * p[0,2] * p[1,2] - 1.)))
+            # denom = 2. * np.sqrt(2.) * np.pi**1.5 * np.sqrt(1. - (p[0,1]**2 + p[0,2]**2 + p[1,2]**2) + 2. * p[0,1] * p[0,2] * p[1,2])
+            #
+            # return amplitude * num / denom
 
 
     def Unimodal_Model(self, x0, y0, z0, covxx, covyy, covzz, amp):
@@ -141,7 +154,7 @@ class MN:
         def transform_centres(i):
             cube[i] = max(self.x_range) * cube[i]
         def transform_widths(i):
-            cube[i] = 10. * cube[i]
+            cube[i] = 4. * cube[i]
         # x0, y0, z0:
         for i in [0, 1, 2]:
             transform_centres(i)
@@ -172,7 +185,7 @@ class MN:
         frame1 = plt.gca()
         color_map = LinearSegmentedColormap.from_list('mycmap', ['black', 'red', 'yellow', 'white'])
         c_dens = sub_fig.imshow(the_slice, cmap=color_map, extent=lims, origin="lower")
-        c_dens.set_clim(vmin=0,vmax=1)
+        # c_dens.set_clim(vmin=0,vmax=1)
         c_bar = fig.colorbar(c_dens, orientation='vertical')
         # plt.axis('equal')
         plt.xlim(lims[:2])
