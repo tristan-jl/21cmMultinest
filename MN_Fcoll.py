@@ -19,6 +19,13 @@ except:
     pma = imp.load_source("analyse", "C:/Users/Ronnie/Documents/PyMultiNest/pymultinest/analyse.py")
     ANALYSIS_MODE = True
     exc_info = sys.exc_info()
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    USE_MPI = True
+except:
+    USE_MPI = False
 
 
 
@@ -138,7 +145,7 @@ class MN:
         x0, y0, z0 = cube[0], cube[1], cube[2]
 
         model = self.Unimodal_Model(x0, y0, z0)
-        loglikelihood = (-0.5 * ((model - self.data) / self.scatter)**2).sum()
+        loglikelihood = (-0.5 * ((model - self.data) / self.scatter)**2).sum() # TODO: ADD NORMALISATION
 
         return loglikelihood
 
@@ -169,18 +176,26 @@ class MN:
             scatter (float): Sampling scatter value
         """
         if ANALYSIS_MODE:
-            raise Exception("Could not load full PyMultiNest. Analysis mode only. {0}".format(exc_info))
+            raise Exception("Could not load full PyMultiNest. Analysis mode only. {}".format(exc_info))
 
         self.scatter = scatter
 
-        start_time = time.time()
+        if (USE_MPI == True and rank == 0) or USE_MPI == False:
+            start_time = time.time()
         # run MultiNest
-        pymultinest.run(self.Loglike, self.Prior, self.n_params, outputfiles_basename=self.filename+'_1_', n_live_points=n_points, resume=resume, importance_nested_sampling=False, mode_tolerance=mode_tolerance, verbose=verbose, max_iter=max_iter)
+        pymultinest.run(self.Loglike, self.Prior, self.n_params, outputfiles_basename=self.filename+'_1_', n_live_points=n_points, resume=resume, importance_nested_sampling=False, mode_tolerance=mode_tolerance, verbose=verbose, max_iter=max_iter, max_modes=500)
 
-        end_time = time.time()
-        print "\nTime taken:", int((end_time - start_time) / 60.), "mins\n"
-
-        json.dump(self.parameters, open(self.filename + '_1_params.json', 'w')) # save parameter names
+        if (USE_MPI == True and rank == 0) or USE_MPI == False:
+            end_time = time.time()
+            print "\nTime taken:", int((end_time - start_time) / 60.), "mins\n"
+            log_file = open(self.filename + "_1_LOG.txt", "w")
+            log_file.write("No. live points: {}\r\n".format(n_points))
+            log_file.close()
+            log_file = open(self.filename + "_1_LOG.txt", "a")
+            log_file.write("Scatter: {}\r\n".format(scatter))
+            log_file.write("Time taken: {} mins\r\n\r\n".format(int((end_time - start_time) / 60.)))
+            log_file.close()
+            json.dump(self.parameters, open(self.filename + '_1_params.json', 'w')) # save parameter names
 
 
     def marginals(self):
@@ -205,6 +220,7 @@ class MN:
                 plt.ylabel(self.parameters[i])
                 # plt.savefig(self.filename + "_1_marg_" + str(i) + "_" + str(j) + ".png")
         plt.savefig(self.filename + "_1_marg.png")
+        plt.close()
 
 
     def save_modes(self):
@@ -220,12 +236,16 @@ class MN:
         sigmas = np.array([mode_stats[i]["sigma"] for i in range(n_modes)])
         optimal_params = np.dstack((means, sigmas))
 
+        log_file = open(self.filename + "_1_LOG.txt", "a")
+
         if len(means) == 0:
             print "No modes detected"
+            log_file.write("No modes detected\n")
         else:
             fit_data = self.Multimodal_Model(means[:,0], means[:,1], means[:,2])
             self._plot(fit_data)
             plt.savefig(self.filename + "_1_fig.png")
+            plt.close()
             if self.filename[-3:] == "Mpc":
                 datafile_split = self.filename.split("_")
                 outfile = "_".join(datafile_split[:-2]) + "_MODES_" + "_".join(datafile_split[-2:])
@@ -233,8 +253,13 @@ class MN:
                 outfile = self.filename
             write_binary_data(outfile, fit_data.flatten())
 
+            print len(means), "modes detected"
+            log_file.write("{} modes detected\n\n".format(len(means)))
             for n in range(len(optimal_params)):
                 mode = optimal_params[n]
-                print "Mode", n
+                # print "Mode", n
+                log_file.write("Mode {}\n".format(n))
                 for i in range(self.n_params):
-                    print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
+                    # print "  " + self.parameters[i] + ": ", mode[i][0], "+/-", mode[i][1]
+                    log_file.write("  {}: {} +/- {}\n".format(self.parameters[i], mode[i][0], mode[i][1]))
+            log_file.close()
